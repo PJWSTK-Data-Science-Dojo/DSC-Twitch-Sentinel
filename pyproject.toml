@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "dsc_hackai"
+version = "0.1.0"
+description = "Sentiment analysis of chat data *live*"
+authors = ["DSC"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.13"
+python-dotenv = "^1.0.1"
+fastapi = "^0.115.0"
+pytest = "^8.3.3"
+uvicorn = "^0.30.6"
+pytest-fastapi = "^0.1.0"
+jsonschema = "^4.23.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+main = "backend.main:main"
