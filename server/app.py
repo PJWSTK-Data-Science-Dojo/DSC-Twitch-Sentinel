@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI):
     # INIT TWITCH CLIENT
     # INIT SOCKET MANAGER
     yield
