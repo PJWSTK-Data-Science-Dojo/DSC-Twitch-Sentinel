@@ -6,7 +6,9 @@ class WebSocketManager:
     def __init__(self):
         self.stream_clients: dict[str, list[WebSocket]] = {}
 
-    def add_client(self, client: WebSocket, stream_id: str):
+    async def add_client(self, client: WebSocket, stream_id: str):
+        await client.accept()
+
         if stream_id not in self.stream_clients:
             self.stream_clients[stream_id] = []
 
@@ -29,3 +31,6 @@ class WebSocketManager:
     def delete_stream(self, stream_id: str):
         if stream_id in self.stream_clients:
             del self.stream_clients[stream_id]
+
+
+websocket_manager = WebSocketManager()
