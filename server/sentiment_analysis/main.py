@@ -32,48 +32,46 @@ def filter_garbage(chat_message):
     return chat_message
 
 
-def single_message_classification(clf, chat_message):
-    results = clf(chat_message)[0]
-    return {item['label']: item['score'] for item in results}
-
-
-def get_cum_score(clf, chat_messages):
-    cumulative_scores = {}
-    for message in chat_messages:
-        scores = single_message_classification(clf, message)
-        for label, score in scores.items():
-            if label not in cumulative_scores:
-                cumulative_scores[label] = []
-            cumulative_scores[label].append(score)
-
-    return cumulative_scores
-
-
 def normalize(scores):
     total_score = sum(scores.values())
     normalized_scores = {label: score / total_score for label, score in scores.items()}
     return normalized_scores
 
 
-def multiple_message_classification_avg(clf, chat_messages):
-    cumulative_scores = get_cum_score(clf, chat_messages)
-    avg_scores = {label: sum(scores) / len(scores) for label, scores in cumulative_scores.items()}
-    return normalize(avg_scores)
+class SentimentAnalysis:
+    def __init__(self, task, model, device):
+        self.clf = pipeline(task=task, model=model, top_k=None, device=device, use_fast=False)
 
+    def single_message_classification(self, chat_message):
+        assert self.clf, "Classifier should exist"
+        results = self.clf(chat_message)[0]
+        return {item['label']: item['score'] for item in results}
 
-def multiple_message_classification_harmonic_mean(clf, chat_messages):
-    cumulative_scores = get_cum_score(clf, chat_messages)
-    harmonic_mean_scores = {label: harmonic_mean(scores) for label, scores in cumulative_scores.items()}
-    return normalize(harmonic_mean_scores)
+    def get_cum_score(self, chat_messages):
+        cumulative_scores = {}
+        for message in chat_messages:
+            scores = self.single_message_classification(message)
+            for label, score in scores.items():
+                if label not in cumulative_scores:
+                    cumulative_scores[label] = []
+                cumulative_scores[label].append(score)
 
+        return cumulative_scores
 
-def create_model(task, model, device):
-    return pipeline(task=task, model=model, top_k=None, device=device, use_fast=False)
+    def multiple_message_classification_avg(self, chat_messages):
+        cumulative_scores = self.get_cum_score(chat_messages)
+        avg_scores = {label: sum(scores) / len(scores) for label, scores in cumulative_scores.items()}
+        return normalize(avg_scores)
+
+    def multiple_message_classification_harmonic_mean(self, chat_messages):
+        cumulative_scores = self.get_cum_score(chat_messages)
+        harmonic_mean_scores = {label: harmonic_mean(scores) for label, scores in cumulative_scores.items()}
+        return normalize(harmonic_mean_scores)
 
 
 if __name__ == '__main__':
     print(device)
-    classifier = create_model(task, model, device)
+    sent_model = SentimentAnalysis(task, model, device)
 
     messages_test = [
         "nikogo jebany lewus nie interesuje",
@@ -85,5 +83,6 @@ if __name__ == '__main__':
         "wyłącz ten syf",
         "wyłącz"
     ]
+
     messages_test = filter_garbage_batch(messages_test)
-    print(multiple_message_classification_harmonic_mean(classifier, messages_test))
+    print(sent_model.multiple_message_classification_harmonic_mean(messages_test))
