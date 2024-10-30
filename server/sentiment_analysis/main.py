@@ -9,38 +9,38 @@ task = "sentiment-analysis"
 
 
 def filter_garbage_batch(chat_batch):
-    # add type checker for list n string
-    messages = chat_batch.split('\n')
-    preprocessed_messages = []
+    if isinstance(chat_batch, (list, tuple)):
+        messages = chat_batch
+    elif isinstance(chat_batch, str):
+        messages = chat_batch.split('\n')
+    else:
+        raise TypeError("Expected chat_batch to be a string, list, or tuple.")
 
-    for chat_message in messages:
-        preprocessed_messages.append(filter_garbage(chat_message))
+    preprocessed_messages = [filter_garbage(chat_message) for chat_message in messages]
 
-    return '\n'.join(preprocessed_messages)
+    return preprocessed_messages
 
 
 def filter_garbage(chat_message):
-    if len(chat_message.split("\n")) > 1:
-        return filter_garbage_batch
+    assert isinstance(chat_message, str), "must be string to filter out"
 
     chat_message = re.sub(r'http\S+', '', chat_message)  # Remove URLs
     chat_message = re.sub(r'@\w+', '', chat_message) # Remove mentions
-    chat_message = re.sub(r'[^\w\s]', '', chat_message) # removes any non character characters
+    chat_message = re.sub(r'[^\w\sgit b]', '', chat_message) # removes any non character characters
     chat_message = re.sub(r'(.)\1{2,}', r'\1\1', chat_message) # makes things like noooooooo noo
     chat_message = chat_message.strip()
     return chat_message
 
 
-def single_message_classification(chat_message):
-    results = classifier(chat_message)[0]
-    score_dict = {item['label']: item['score'] for item in results}
-    return score_dict
+def single_message_classification(clf, chat_message):
+    results = clf(chat_message)[0]
+    return {item['label']: item['score'] for item in results}
 
 
-def get_cum_score(chat_messages):
+def get_cum_score(clf, chat_messages):
     cumulative_scores = {}
     for message in chat_messages:
-        scores = single_message_classification(message)
+        scores = single_message_classification(clf, message)
         for label, score in scores.items():
             if label not in cumulative_scores:
                 cumulative_scores[label] = []
@@ -55,23 +55,27 @@ def normalize(scores):
     return normalized_scores
 
 
-def multiple_message_classification_avg(chat_messages):
-    cumulative_scores = get_cum_score(chat_messages)
+def multiple_message_classification_avg(clf, chat_messages):
+    cumulative_scores = get_cum_score(clf, chat_messages)
     avg_scores = {label: sum(scores) / len(scores) for label, scores in cumulative_scores.items()}
     return normalize(avg_scores)
 
 
-def multiple_message_classification_harmonic_mean(chat_messages):
-    cumulative_scores = get_cum_score(chat_messages)
+def multiple_message_classification_harmonic_mean(clf, chat_messages):
+    cumulative_scores = get_cum_score(clf, chat_messages)
     harmonic_mean_scores = {label: harmonic_mean(scores) for label, scores in cumulative_scores.items()}
     return normalize(harmonic_mean_scores)
 
 
+def create_model(task, model, device):
+    return pipeline(task=task, model=model, top_k=None, device=device, use_fast=False)
+
+
 if __name__ == '__main__':
     print(device)
-    classifier = pipeline(task=task, model=model, top_k=None, device=device, use_fast=False)
+    classifier = create_model(task, model, device)
 
-    messages = [
+    messages_test = [
         "nikogo jebany lewus nie interesuje",
         "wyłącz tego śmiecia lewusa",
         "mutuj lewusa",
@@ -81,5 +85,5 @@ if __name__ == '__main__':
         "wyłącz ten syf",
         "wyłącz"
     ]
-
-    print(multiple_message_classification_harmonic_mean(messages))
+    messages_test = filter_garbage_batch(messages_test)
+    print(multiple_message_classification_harmonic_mean(classifier, messages_test))
