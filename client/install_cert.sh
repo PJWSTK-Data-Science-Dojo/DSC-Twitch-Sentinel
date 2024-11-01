@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+mkdir -p node_modules/webpack-dev-server/ssl
 mkcert -install \
     -cert-file cert.pem \
     -key-file key.pem \

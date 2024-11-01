@@ -1,36 +1,76 @@
 from fastapi import WebSocket
+from fastapi_socketio import SocketManager
+from socketio.exceptions import DisconnectedError
+
+from .stream_context import StreamContext
+
+from .client import Client
 
 
 class WebSocketManager:
+    def __init__(self, sm_app: SocketManager):
+        self.all_clients: dict[str, Client] = dict()
+        self.stream_clients: dict[str, set[Client]] = {}
+        self.sm_app = sm_app
 
-    def __init__(self):
-        self.stream_clients: dict[str, list[WebSocket]] = {}
+    def add_client(self, client: Client):
+        if client.sid in self.all_clients:
+            return
 
-    async def add_client(self, client: WebSocket, stream_id: str):
-        await client.accept()
+        self.all_clients[client.sid] = client
 
-        if stream_id not in self.stream_clients:
-            self.stream_clients[stream_id] = []
+    def update_client(self, sid: str, stream_context: StreamContext):
+        if sid not in self.all_clients:
+            raise Exception(f"Client with sid {sid} not found")
 
-        self.stream_clients[stream_id].append(client)
+        client = self.all_clients[sid]
+        client.stream_id = stream_context.channelId
 
-    def remove_client(self, client: WebSocket, stream_id: str):
-        self.stream_clients[stream_id].remove(client)
+        if stream_context.channelId not in self.stream_clients:
+            self.stream_clients[stream_context.channelId] = set()
 
-        if not self.stream_clients[stream_id]:
-            self.delete_stream(stream_id)
+        self.stream_clients[stream_context.channelId].add(client.sid)
+
+    async def remove_client(self, sid: str):
+        if sid not in self.all_clients:
+            raise Exception(f"Client with sid {sid} not found")
+
+        client = self.all_clients[sid]
+
+        if client.stream_id:
+            self.stream_clients[client.stream_id].remove(client.sid)
+            if not self.stream_clients[client.stream_id]:
+                await self.delete_stream(client.stream_id)
+
+        del self.all_clients[sid]
+
+        await self.send_disconnect(sid)
 
     async def send_message(self, message: str, stream_id: str):
+        if stream_id not in self.stream_clients:
+            raise Exception(f"Stream with id {stream_id} not found")
+
         for client in self.stream_clients[stream_id]:
-            try:
-                await client.send_text(message)
-            except Exception as e:
-                print(f"Failed to send message to {client}: {e}")
-                await self.remove_client(client, stream_id)
+            await self.sm_app.emit("data", message, to=client.sid)
 
-    def delete_stream(self, stream_id: str):
-        if stream_id in self.stream_clients:
-            del self.stream_clients[stream_id]
+    async def delete_stream(self, stream_id: str):
+        if stream_id not in self.stream_clients:
+            raise Exception(f"Stream with id {stream_id} not found")
 
+        for client in list(self.stream_clients[stream_id]):
+            await self.remove_client(client.sid)
 
-websocket_manager = WebSocketManager()
+        del self.stream_clients[stream_id]
+
+    async def close(self):
+        for stream_id in self.stream_clients:
+            for sid in self.stream_clients[stream_id]:
+                await self.sm_app.emit("disconnect", to=sid)
+
+        self.stream_clients.clear()
+
+    async def send_disconnect(self, sid: str):
+        try:
+            await self.sm_app.emit("disconnect", to=sid)
+        except DisconnectedError:
+            print(f"Client {sid} already disconnected")
