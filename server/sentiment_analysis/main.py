@@ -70,7 +70,6 @@ class SentimentAnalysis:
 
 
 if __name__ == '__main__':
-    print(device)
     sent_model = SentimentAnalysis(task, model, device)
 
     messages_test = [
@@ -85,4 +84,5 @@ if __name__ == '__main__':
     ]
 
     messages_test = filter_garbage_batch(messages_test)
+    messages_test = '\n'.join(messages_test)
     print(sent_model.multiple_message_classification_harmonic_mean(messages_test))
