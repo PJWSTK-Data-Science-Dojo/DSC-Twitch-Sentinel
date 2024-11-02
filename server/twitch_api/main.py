@@ -141,11 +141,18 @@ class TwitchAPI:
         return response.json()
 
     def get_streams(self, channel_id):
-        pass
+        url = 'https://api.twitch.tv/helix/streams'
+        params = {
+            "user_id": channel_id,
+            "type": "live"
+        }
+        response = requests.get(url, headers=self.headers, params=params)
+        return response.json()
 
     def connect_to_chat(self):
-        ws_nossl = "ws://irc-ws.chat.twitch.tv:80"
-
+        #use either, in docs they say eventsub is easier
+        irc_ws_nossl = "ws://irc-ws.chat.twitch.tv:80"
+        ws_eventsub = "wss://eventsub.wss.twitch.tv/ws"
 
 # step by step
 """
@@ -164,11 +171,10 @@ if user authorizes example correct link http://localhost:3000/?code= 96le3w4pitv
 if __name__ == '__main__':
 
     twitch_api = TwitchAPI(CLIENT_ID, CLIENT_SECRET)
-    # twitch_api.auth(CLIENT_ID, CLIENT_SECRET)
+    twitch_api.auth(CLIENT_ID, CLIENT_SECRET)
+    # print(json.dumps(twitch_api.get_user_info("filian"), indent=4))
+    print(json.dumps(twitch_api.get_streams("198633200"), indent=4))
     # twitch_api.make_user_auth()
     # code = "code"
     # twitch_api.auth_user(code)
-    twitch_api.ref_token("ref_token")
-    print(twitch_api.headers)
-    print(twitch_api.refresh_token)
-
+    # twitch_api.ref_token("ref_token")
