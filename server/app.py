@@ -1,14 +1,11 @@
 import asyncio
-from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse
+import random
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_socketio import SocketManager
 
 # from twitch_api import twitch_client
 from contextlib import asynccontextmanager
-from utils.client import Client
-from utils.stream_context import StreamContext
-from utils.websocket_manager import WebSocketManager
+from utils.sockets import sio_app, socket_manager, sio_server
 import logging
 
 logging.basicConfig(level=logging.ERROR)
@@ -16,9 +13,24 @@ logging.basicConfig(level=logging.ERROR)
 sessions = []
 
 
+async def test_thread():
+    while True:
+        for sid, client in socket_manager.all_clients.items():
+            print(f"Sending chat to {sid}")
+            await sio_server.emit(
+                "chat",
+                {
+                    "chat_entertainment": random.random(),
+                },
+                to=sid,
+            )
+        await asyncio.sleep(5)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global sm_app, websocket_manager
+    global sio_app, socket_manager
+    test_thread_task = asyncio.create_task(test_thread())
     # INIT TWITCH CLIENT
     # INIT SOCKET MANAGER
     # INIT JOB QUEUE
@@ -28,53 +40,26 @@ async def lifespan(app: FastAPI):
     # CLOSE JOB QUEUE
     # CLOSE TWITCH CLIENT
     # CLOSE SOCKET MANAGER
-    await websocket_manager.close()
-    await sm_app._sio.shutdown()
+    test_thread_task.cancel()
+    try:
+        await test_thread_task
+    except asyncio.CancelledError:
+        pass
+    await socket_manager.close()
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount(path="/", app=sio_app)
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[
-#         "https://localhost:3000"
-#     ],  # Set origins that are allowed to communicate with this API
-#     allow_credentials=True,  # Allow cookies and other credentials
-#     allow_methods=["*"],  # Allow all HTTP methods
-#     allow_headers=["*"],  # Allow all headers
-# )
-
-sm_app = SocketManager(app=app, mount_location="/socket.io")
-websocket_manager = WebSocketManager(sm_app)
-
-
-@sm_app.on("connect")
-async def handle_connect(sid, environ):
-    print(f"Client {sid} connected")
-    await sm_app.emit("connected", f"Hello from server!", to=sid)
-    client = Client(sid=sid)
-    websocket_manager.add_client(client)
-
-
-@sm_app.on("disconnect")
-async def handle_disconnect(sid):
-    await websocket_manager.remove_client(sid)
-    print(f"Client {sid} disconnected")
-
-
-@sm_app.on("message")
-async def handle_message(sid, data):
-    await sm_app.emit("response", f"Echo: {data}", to=sid)
-
-
-@sm_app.on("stream_context")
-async def handle_message(sid, data: StreamContext):
-    context = StreamContext.model_validate(data)
-    print(f"Received stream context: {context}")
-
-    await sm_app.emit("response", f"Echo: {context}", to=sid)
-
-    websocket_manager.update_client(sid, context)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://localhost:3000"
+    ],  # Set origins that are allowed to communicate with this API
+    allow_credentials=True,  # Allow cookies and other credentials
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 @app.get("/")
@@ -84,7 +69,7 @@ def read_root():
 
 @app.get("/streams")
 async def get_streams():
-    keys = websocket_manager.stream_clients.keys()
+    keys = socket_manager.stream_clients.keys()
     return list(keys)
 
 

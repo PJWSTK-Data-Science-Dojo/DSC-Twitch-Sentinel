@@ -1,62 +1,81 @@
-import { useEffect, useRef } from 'react';
-import logo from './logo.svg';
+import { useEffect, useState, useRef } from 'react';
 import './App.css';
-import { io } from 'socket.io-client';
+import io from 'socket.io-client';
 
 function App() {
-  const socketRef = useRef(null);
+
+  const [chatEntertainment, setChatEntertainment] = useState(1.0);
+  const [isConnected, setIsConnected] = useState(false);
+  const socket = useRef();
+
   useEffect(() => {
-    // Initialize socket connection once when the component mounts
-    window.Twitch.ext.onAuthorized((auth) => {
-      // Create the WebSocket connection if it doesn't exist
-      if (socketRef.current) {
-        return;
-      }
-      socketRef.current = io(process.env.REACT_APP_BACKEND_URL, {
-          transports: ['websocket'],
-          rejectUnauthorized: false,
-      });
+    socket.current = io(`http://${process.env.REACT_APP_BACKEND_URL}`, {
+      transports: ['websocket'],
+      path: '/sockets'
+    });
 
-      socketRef.current.on('connected', () => {
-          console.log('Connected to server');
-          socketRef.current.emit('stream_context', auth);
-      });
+    socket.current.on("connnection", () => {
+      console.log("connected to server");
+    });
+    socket.current.on('connect', () => {
+      setIsConnected(true);
+    });
 
-      socketRef.current.on('disconnect', () => {
-          console.log('Disconnected from server');
-      });
+    socket.current.on('disconnect', () => {
+      setIsConnected(socket.current.connected);
+    });
 
-      socketRef.current.on('message', (message) => {
-          console.log('Received message:', message);
-      });
+    socket.current.on('chat', (data) => {
+      console.log('Received data:', data);
+      setChatEntertainment(data.chat_entertainment);
+    });
 
-      socketRef.current.on('data', (data) => {
-        console.log('Received message:', data);
-      });
+    socket.current.on('disconnect', () => {
+      socket.current.disconnect();
     });
     
     return () => {
-        socketRef.current.disconnect();
-        socketRef.current = null;
+      socket.current.disconnect();
     };
+
   }, []);
+
+
+  const [color, setColor] = useState('lightblue');
+
+  function calcColor(value) {
+    let r, g, b;
   
+    if (value <= 0.5) {
+      // Interpolate from blue (#0000FF) to yellow (#FFFF00)
+      const ratio = value / 0.5;
+      r = Math.round(255 * ratio);
+      g = Math.round(255 * ratio);
+      b = 255 - Math.round(255 * ratio);
+    } else {
+      // Interpolate from yellow (#FFFF00) to red (#FF0000)
+      const ratio = (value - 0.5) / 0.5;
+      r = 255;
+      g = 255 - Math.round(255 * ratio);
+      b = 0;
+    }
+  
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  useEffect(() => {
+    console.log('Chat entertainment:', chatEntertainment);
+    setColor(calcColor(chatEntertainment));
+  }, [chatEntertainment]);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div className='main-body'>
+      </div>
+      <div className='chart-bar' style={{
+        backgroundColor: color,
+        height: `${chatEntertainment * 100}%`,
+      }}></div>
     </div>
   );
 }

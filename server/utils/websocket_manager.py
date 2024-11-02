@@ -1,4 +1,3 @@
-from fastapi import WebSocket
 from fastapi_socketio import SocketManager
 from socketio.exceptions import DisconnectedError
 
