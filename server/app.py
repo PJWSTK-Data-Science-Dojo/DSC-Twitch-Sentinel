@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from utils.sockets import sio_app, socket_manager, sio_server
 import logging
+from twitch_api import twitch
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -30,26 +31,20 @@ async def test_thread():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global sio_app, socket_manager
-    test_thread_task = asyncio.create_task(test_thread())
-    # INIT TWITCH CLIENT
-    # INIT SOCKET MANAGER
+    await twitch.start()
+
     # INIT JOB QUEUE
 
     yield
 
     # CLOSE JOB QUEUE
-    # CLOSE TWITCH CLIENT
-    # CLOSE SOCKET MANAGER
-    test_thread_task.cancel()
-    try:
-        await test_thread_task
-    except asyncio.CancelledError:
-        pass
     await socket_manager.close()
+    await twitch.close()
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount(path="/", app=sio_app)
+app.mount(path="/sockets", app=sio_app)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,12 +62,27 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/streams")
+@app.get("/streams", status_code=200)
 async def get_streams():
-    keys = socket_manager.stream_clients.keys()
+    keys = twitch.connected_chats.keys()
     return list(keys)
 
 
-# @app.get("/streams/{stream_id}")
-# async def get_stream(stream_id: str):
-#     return websocket_manager.stream_clients.get(stream_id, [])
+@app.get("/streams/{stream_name}/listen", status_code=200)
+async def listen_stream(stream_name: str):
+    print("Listening to stream")
+
+    await twitch.join_room(stream_name)
+    return {"status": "ok"}
+
+
+@app.get("/streams/{stream_name}/chat", status_code=200)
+async def get_chat(stream_name: str):
+    print("Getting chat")
+    return twitch.connected_chats[stream_name]
+
+
+@app.get("/streams/{stream_name}/leave")
+async def leave_stream(stream_name: str):
+    await twitch.leave_room(stream_name)
+    return {"status": "ok"}

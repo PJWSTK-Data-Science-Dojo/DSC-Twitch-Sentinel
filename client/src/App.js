@@ -9,6 +9,7 @@ function App() {
   const socket = useRef();
 
   useEffect(() => {
+
     socket.current = io(`http://${process.env.REACT_APP_BACKEND_URL}`, {
       transports: ['websocket'],
       path: '/sockets'
@@ -34,6 +35,12 @@ function App() {
       socket.current.disconnect();
     });
     
+
+    window.Twitch.ext.onAuthorized((auth) => {
+      console.log('Auth:', auth);
+      socket.current.emit('stream_context', auth);
+    });
+
     return () => {
       socket.current.disconnect();
     };
