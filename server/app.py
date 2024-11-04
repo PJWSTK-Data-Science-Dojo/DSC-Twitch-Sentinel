@@ -34,9 +34,7 @@ async def lifespan(app: FastAPI):
     await twitch.start()
 
     # INIT JOB QUEUE
-
     yield
-
     # CLOSE JOB QUEUE
     await socket_manager.close()
     await twitch.close()
@@ -60,6 +58,12 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
+
+@app.get("/streams/{stream_name}/info", status_code=200)
+async def get_info_stream(stream_name: str):
+    print("get info chat")
+    return twitch.get_streams(stream_name)
 
 
 @app.get("/streams", status_code=200)

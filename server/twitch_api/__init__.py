@@ -185,9 +185,9 @@ class TwitchAPI:
         )
         return response.json()
 
-    def get_streams(self, channel_id):
+    def get_streams(self, channel_name):
         url = "https://api.twitch.tv/helix/streams"
-        params = {"user_id": channel_id, "type": "live"}
+        params = {"user_login": channel_name, "type": "live"}
         response = requests.get(url, headers=self.headers, params=params)
         return response.json()
 
