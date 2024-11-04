@@ -185,7 +185,13 @@ class TwitchAPI:
         )
         return response.json()
 
-    def get_streams(self, channel_name):
+    def get_streams_name(self, channel_name):
+        url = "https://api.twitch.tv/helix/streams"
+        params = {"user_login": channel_name, "type": "live"}
+        response = requests.get(url, headers=self.headers, params=params)
+        return response.json()
+
+    def get_streams_id(self, channel_name):
         url = "https://api.twitch.tv/helix/streams"
         params = {"user_login": channel_name, "type": "live"}
         response = requests.get(url, headers=self.headers, params=params)
@@ -273,6 +279,8 @@ if user authorizes example correct link http://localhost:3000/?code= 96le3w4pitv
 4. if expires use REFRESH_TOKEN you can't use make_user_auth(), unless user returns new code.
 """
 twitch = TwitchAPI(CLIENT_ID, CLIENT_SECRET)
+
+
 if __name__ == "__main__":
     pass
     # twitch_api = TwitchAPI(CLIENT_ID, CLIENT_SECRET)

@@ -63,7 +63,7 @@ def read_root():
 @app.get("/streams/{stream_name}/info", status_code=200)
 async def get_info_stream(stream_name: str):
     print("get info chat")
-    return twitch.get_streams(stream_name)
+    return twitch.get_streams_name(stream_name)
 
 
 @app.get("/streams", status_code=200)
