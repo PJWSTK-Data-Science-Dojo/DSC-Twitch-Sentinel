@@ -34,6 +34,8 @@ class TwitchAPI:
         self.websocket = None
         self.chat_task = None
         self.connected_chats: dict[str, deque] = {}
+        self.name_to_id: dict[str, str] = {}
+        self.id_to_name: dict[str, str] = {}
 
     async def start(self):
         """Start the Twitch chat connection in the background."""
@@ -191,6 +193,16 @@ class TwitchAPI:
         response = requests.get(url, headers=self.headers, params=params)
         return response.json()
 
+    def get_streamer_login(self, channel_id):
+        url = "https://api.twitch.tv/helix/streams"
+        params = {"user_id": channel_id, "type": "live"}
+        response = requests.get(url, headers=self.headers, params=params)
+        data = response.json()
+        if not data.get("data"):
+            return None
+
+        return data["data"][0]["user_login"]
+
     def get_streams_id(self, channel_name):
         url = "https://api.twitch.tv/helix/streams"
         params = {"user_login": channel_name, "type": "live"}
@@ -218,7 +230,7 @@ class TwitchAPI:
         except websockets.ConnectionClosed:
             print("WebSocket connection closed.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred: {e.with_traceback()}")
 
     def handle_message(self, message: websockets.Data):
         """Handle and process chat messages."""
@@ -230,25 +242,39 @@ class TwitchAPI:
         channel = channel.strip()
         message = message.strip()
         channel = channel.removeprefix("#")
-        self.connected_chats[channel].append(message)
+        streamer_id = self.name_to_id[channel]
 
-    async def join_room(self, channel: str):
+        self.connected_chats[streamer_id].append(message)
+
+    async def join_room(self, stream_id: str):
         """Join a specific chat room dynamically."""
-        if channel not in self.connected_chats:
-            await self.websocket.send(f"JOIN #{channel}")
-            self.connected_chats[channel] = deque(maxlen=100)
-            print(f"Joined chat for #{channel}")
-        else:
-            print(f"Already in chat for #{channel}")
+        if stream_id not in self.connected_chats:
+            name = self.get_streamer_login(stream_id)
+            await self.websocket.send(f"JOIN #{name}")
 
-    async def leave_room(self, channel: str):
-        """Leave a specific chat room dynamically."""
-        if channel in self.connected_chats:
-            await self.websocket.send(f"PART #{channel}")
-            del self.connected_chats[channel]
-            print(f"Left chat for #{channel}")
+            self.name_to_id[name] = stream_id
+            self.id_to_name[stream_id] = name
+            self.connected_chats[stream_id] = deque(maxlen=100)
+            print(f"Joined chat for #{name}")
         else:
-            print(f"Not currently in chat for #{channel}")
+            print(f"Already in chat with id: {stream_id}")
+
+    async def leave_room(self, stream_id: str):
+        """Leave a specific chat room dynamically."""
+        if stream_id in self.connected_chats:
+            name = self.id_to_name[stream_id]
+            try:
+                await self.websocket.send(f"PART #{name}")
+            except websockets.ConnectionClosed:
+                print("WebSocket connection closed.")
+
+            del self.connected_chats[stream_id]
+            del self.name_to_id[name]
+            del self.id_to_name[stream_id]
+
+            print(f"Left chat for #{name}")
+        else:
+            print(f"Not currently in chat for id: {stream_id}")
 
     async def close(self):
         """Close the Twitch chat connection and cancel the background task."""

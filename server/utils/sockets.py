@@ -38,7 +38,7 @@ async def stream_context(sid, data):
         print(f"Received stream context: {context}")
 
         await sio_server.emit("response", f"Echo: {context}", to=sid)
-        socket_manager.update_client(sid, context)
+        await socket_manager.update_client(sid, context)
     except Exception as e:
         print(f"Error processing stream context: {e}")
         await sio_server.emit("error", "Invalid data format for stream context", to=sid)

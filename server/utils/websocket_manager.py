@@ -4,6 +4,7 @@ from socketio.exceptions import DisconnectedError
 from .stream_context import StreamContext
 
 from .client import Client
+from twitch_api import twitch
 
 
 class WebSocketManager:
@@ -18,7 +19,7 @@ class WebSocketManager:
 
         self.all_clients[client.sid] = client
 
-    def update_client(self, sid: str, stream_context: StreamContext):
+    async def update_client(self, sid: str, stream_context: StreamContext):
         if sid not in self.all_clients:
             raise Exception(f"Client with sid {sid} not found")
 
@@ -27,6 +28,8 @@ class WebSocketManager:
 
         if stream_context.channelId not in self.stream_clients:
             self.stream_clients[stream_context.channelId] = set()
+            await twitch.join_room(stream_context.channelId)
+            # TODO JOB QUEUE
 
         self.stream_clients[stream_context.channelId].add(client.sid)
 
@@ -60,6 +63,8 @@ class WebSocketManager:
             await self.remove_client(client.sid)
 
         del self.stream_clients[stream_id]
+        await twitch.leave_room(stream_id)
+        # TODO JOB QUEUE
 
     async def close(self):
         for stream_id in self.stream_clients:

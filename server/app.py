@@ -83,7 +83,7 @@ async def listen_stream(stream_name: str):
 @app.get("/streams/{stream_name}/chat", status_code=200)
 async def get_chat(stream_name: str):
     print("Getting chat")
-    return twitch.connected_chats[stream_name]
+    return twitch.connected_chats.get(stream_name, [])
 
 
 @app.get("/streams/{stream_name}/leave")
