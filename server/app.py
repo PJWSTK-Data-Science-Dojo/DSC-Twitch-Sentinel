@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from utils.sockets import sio_app, socket_manager, sio_server
 import logging
 from twitch_api import twitch
+from sentiment_analysis.analysis_queue import analysis_queue
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -32,9 +33,10 @@ async def test_thread():
 async def lifespan(app: FastAPI):
     global sio_app, socket_manager
     await twitch.start()
-
+    analysis_queue.start()
     # INIT JOB QUEUE
     yield
+    analysis_queue.close()
     # CLOSE JOB QUEUE
     await socket_manager.close()
     await twitch.close()

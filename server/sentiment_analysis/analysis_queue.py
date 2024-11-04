@@ -1,8 +1,8 @@
 import queue
 import threading
 
-from sentiment_analysis.main import SentimentAnalysis
 from app import twitch, socket_manager
+from .main import task, model, device, SentimentAnalysis
 
 
 class AnalysisQueue:
@@ -72,3 +72,6 @@ class AnalysisQueue:
                 print(
                     f"Stream {stream_id} not found in the queue or already being processed."
                 )
+
+
+analysis_queue = AnalysisQueue(task, model, device)
