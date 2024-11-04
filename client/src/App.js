@@ -26,9 +26,10 @@ function App() {
       setIsConnected(socket.current.connected);
     });
 
-    socket.current.on('chat', (data) => {
+    socket.current.on('data', (data) => {
       console.log('Received data:', data);
-      setChatEntertainment(data.chat_entertainment);
+      let value = data.positive/(data.negative + data.positive);
+      setChatEntertainment(value);
     });
 
     socket.current.on('disconnect', () => {
@@ -66,7 +67,9 @@ function App() {
       g = 255 - Math.round(255 * ratio);
       b = 0;
     }
-  
+    // r = Math.round(255 * value);
+    // g = 22;
+    // b = 22;
     return `rgb(${r}, ${g}, ${b})`;
   }
 

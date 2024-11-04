@@ -19,33 +19,19 @@ class AnalysisQueue:
     async def _worker(self):
         """Worker thread that processes streams one at a time."""
         while self._is_running:
-            print("Length of queue: ", self.task_queue.qsize())
-            try:
-                # Wait for the next stream ID from the queue
-                stream_id = self.task_queue.get(timeout=1)
-                print(f"Processing stream: {stream_id}")
+            for stream_id in list(twitch.connected_chats.keys()):
                 try:
                     messages_test = list(twitch.connected_chats[stream_id])
-                    results = (
-                        self.sent_model.multiple_message_classification_harmonic_mean(
-                            messages_test
-                        )
+                    results = await asyncio.to_thread(
+                        self.sent_model.multiple_message_classification_harmonic_mean,
+                        messages_test,
                     )
 
-                    print(f"Stream {stream_id} results: {results}")
-                    print(usock.socket_manager, stream_id)
                     await usock.socket_manager.send_message(results, stream_id)
-
                 except Exception as e:
                     print(f"Error processing stream {stream_id}: {e}")
-                finally:
-                    # Mark the task as done
-                    self.task_queue.task_done()
-
-            except queue.Empty:
-                # If the queue is empty, continue looping
-                time.sleep(0.2)
-                continue
+                await asyncio.sleep(0)  # Yield control to the event loop
+            await asyncio.sleep(0.5)  # Delay between cycles
 
     def run(self):
         try:
