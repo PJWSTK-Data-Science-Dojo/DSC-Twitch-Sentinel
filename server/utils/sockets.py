@@ -1,9 +1,9 @@
-import asyncio
-import random
 import socketio
+import sentiment_analysis.analysis_queue as aq
 from utils.websocket_manager import WebSocketManager
 from utils.stream_context import StreamContext
 from .client import Client
+from twitch_api import twitch
 
 sio_server = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins=[])
 sio_app = socketio.ASGIApp(socketio_server=sio_server, socketio_path="sockets")
@@ -39,6 +39,9 @@ async def stream_context(sid, data):
 
         await sio_server.emit("response", f"Echo: {context}", to=sid)
         await socket_manager.update_client(sid, context)
+        await twitch.join_room(context.channelId)
+        await aq.analysis_queue.add_stream(context.channelId)
+
     except Exception as e:
         print(f"Error processing stream context: {e}")
         await sio_server.emit("error", "Invalid data format for stream context", to=sid)

@@ -10,7 +10,7 @@ from twitch_api import twitch
 class WebSocketManager:
     def __init__(self, sm_app: SocketManager):
         self.all_clients: dict[str, Client] = dict()
-        self.stream_clients: dict[str, set[Client]] = {}
+        self.stream_clients: dict[str, set[str]] = {}
         self.sm_app = sm_app
 
     def add_client(self, client: Client):
@@ -28,8 +28,6 @@ class WebSocketManager:
 
         if stream_context.channelId not in self.stream_clients:
             self.stream_clients[stream_context.channelId] = set()
-            await twitch.join_room(stream_context.channelId)
-            # TODO JOB QUEUE
 
         self.stream_clients[stream_context.channelId].add(client.sid)
 
@@ -52,8 +50,8 @@ class WebSocketManager:
         if stream_id not in self.stream_clients:
             raise Exception(f"Stream with id {stream_id} not found")
 
-        for client in self.stream_clients[stream_id]:
-            await self.sm_app.emit("data", message, to=client.sid)
+        for client_sid in self.stream_clients[stream_id]:
+            await self.sm_app.emit("data", message, to=client_sid)
 
     async def delete_stream(self, stream_id: str):
         if stream_id not in self.stream_clients:

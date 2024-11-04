@@ -33,11 +33,11 @@ async def test_thread():
 async def lifespan(app: FastAPI):
     global sio_app, socket_manager
     await twitch.start()
-    analysis_queue.start()
-    # INIT JOB QUEUE
+    await analysis_queue.start()
+
     yield
-    analysis_queue.close()
-    # CLOSE JOB QUEUE
+
+    await analysis_queue.close()
     await socket_manager.close()
     await twitch.close()
 
