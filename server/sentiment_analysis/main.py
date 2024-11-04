@@ -73,14 +73,7 @@ if __name__ == '__main__':
     sent_model = SentimentAnalysis(task, model, device)
 
     messages_test = [
-        "nikogo jebany lewus nie interesuje",
-        "wyłącz tego śmiecia lewusa",
-        "mutuj lewusa",
-        "aha co to za gówno",
-        "nienawidze LEWUSA boze on jest taki cringe",
-        "skip kurwa worlds'y sa",
-        "wyłącz ten syf",
-        "wyłącz"
+        "xd"
     ]
 
     messages_test = filter_garbage_batch(messages_test)
