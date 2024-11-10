@@ -5,7 +5,7 @@ from .stream_context import StreamContext
 
 from .client import Client
 from twitch_api import twitch
-from server.utils.config import LOGGER
+from utils.config import LOGGER
 
 
 class WebSocketManager:

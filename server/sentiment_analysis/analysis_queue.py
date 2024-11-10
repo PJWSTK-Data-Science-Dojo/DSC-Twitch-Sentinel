@@ -7,7 +7,7 @@ import time
 from .main import task, model, device, SentimentAnalysis
 from twitch_api import twitch
 import utils.sockets as usock
-from server.utils.config import LOGGER
+from utils.config import LOGGER
 
 
 class AnalysisQueue:
@@ -80,3 +80,5 @@ class AnalysisQueue:
                 LOGGER.error(
                     f"Stream {stream_id} not found in the queue or already being processed."
                 )
+
+analysis_queue = AnalysisQueue(task, model, device)

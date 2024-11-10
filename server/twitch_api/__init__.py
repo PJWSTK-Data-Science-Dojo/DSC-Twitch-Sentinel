@@ -1,13 +1,13 @@
 import asyncio
 from collections import deque
 from typing import List, Set
-from utils import Message
+from twitch_api.utils_classes import Message
 from dotenv import load_dotenv
 import os
 import requests
 import json
 from urllib.parse import urlencode
-from server.utils.config import LOGGER
+from utils.config import LOGGER
 import websockets
 
 load_dotenv()

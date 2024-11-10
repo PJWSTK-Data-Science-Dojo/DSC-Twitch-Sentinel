@@ -5,7 +5,7 @@ from utils.websocket_manager import WebSocketManager
 from utils.stream_context import StreamContext
 import sentiment_analysis.analysis_queue as aq
 from .client import Client
-from server.utils.config import LOGGER
+from utils.config import LOGGER
 
 sio_server = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins=[])
 sio_app = socketio.ASGIApp(socketio_server=sio_server, socketio_path="sockets")
