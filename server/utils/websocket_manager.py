@@ -5,6 +5,7 @@ from .stream_context import StreamContext
 
 from .client import Client
 from twitch_api import twitch
+from server.utils.config import LOGGER
 
 
 class WebSocketManager:
@@ -75,4 +76,4 @@ class WebSocketManager:
         try:
             await self.sm_app.emit("disconnect", to=sid)
         except DisconnectedError:
-            print(f"Client {sid} already disconnected")
+            LOGGER.error(f"Client {sid} already disconnected")

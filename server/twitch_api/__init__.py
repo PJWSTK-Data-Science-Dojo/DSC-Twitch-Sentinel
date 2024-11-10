@@ -7,7 +7,7 @@ import os
 import requests
 import json
 from urllib.parse import urlencode
-
+from server.utils.config import LOGGER
 import websockets
 
 load_dotenv()
@@ -44,7 +44,7 @@ class TwitchAPI:
 
         # Create an asyncio task for the chat connection
         self.chat_task = asyncio.create_task(self.chat())
-        print("Twitch chat connection started.")
+        LOGGER.info("Twitch chat connection started.")
 
     async def authenticate(self):
         """Authenticate with Twitch and obtain an access token."""
@@ -63,7 +63,7 @@ class TwitchAPI:
             "Authorization": f"Bearer {self.access_token}",
             "Client-Id": self.client_id,
         }
-        print("Authenticated with Twitch API.")
+        LOGGER.info("Authenticated with Twitch API.")
 
     def ref_token(self, refresh_token=None):
         headers = {
@@ -83,17 +83,17 @@ class TwitchAPI:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(f"Failed to retrieve access token: {params}")
-            print(response.status_code)
-            print(response.json())
+            LOGGER.error(f"Failed to retrieve access token: {params}")
+            LOGGER.error(response.status_code)
+            LOGGER.error(response.json())
             return None
         except requests.exceptions.RequestException as err:
-            print(f"Failed to retrieve access token: {params}")
-            print(response.status_code)
-            print(response.json())
+            LOGGER.error(f"Failed to retrieve access token: {params}")
+            LOGGER.error(response.status_code)
+            LOGGER.error(response.json())
             return None
 
-        print(response.json())
+        LOGGER.info(response.json())
         bearer = response.json()["access_token"]
         self.refresh_token = response.json()["refresh_token"]
         self.headers = {
@@ -113,14 +113,13 @@ class TwitchAPI:
         # Construct the full URL
         auth_url = f"{access_user}?{query_string}"
 
-        print(auth_url)
+        LOGGER.info(auth_url)
         return auth_url
 
     def auth_user(self, code):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        # data = f'client_id={self.client_id}&client_secret={self.client_secret}&code={code}&grant_type=authorization_code&redirect_uri={redirect_uri}'
         params = {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
@@ -130,20 +129,19 @@ class TwitchAPI:
         }
 
         try:
-            # response = requests.post('https://id.twitch.tv/oauth2/token', headers=headers, data=data)
             response = requests.post(
                 "https://id.twitch.tv/oauth2/token", headers=headers, params=params
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(f"Failed to retrieve access token: {params}")
-            print(response.status_code)
-            print(response.json())
+            LOGGER.error(f"Failed to retrieve access token: {params}")
+            LOGGER.error(response.status_code)
+            LOGGER.error(response.json())
             return None
         except requests.exceptions.RequestException as err:
-            print(f"Failed to retrieve access token: {params}")
-            print(response.status_code)
-            print(response.json())
+            LOGGER.error(f"Failed to retrieve access token: {params}")
+            LOGGER.error(response.status_code)
+            LOGGER.error(response.json())
             return None
 
         bearer = response.json()["access_token"]
@@ -167,10 +165,10 @@ class TwitchAPI:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
-            print(f"Failed to retrieve access token: {data}")
+            LOGGER.exception(f"Failed to retrieve access token: {data}")
             return None
         except requests.exceptions.RequestException as err:
-            print(f"Failed to retrieve access token: {data}")
+            LOGGER.exception(f"Failed to retrieve access token: {data}")
             return None
 
         bearer = response.json()["access_token"]
@@ -228,9 +226,9 @@ class TwitchAPI:
                 elif message.startswith("PING"):
                     await self.websocket.send("PONG :tmi.twitch.tv")
         except websockets.ConnectionClosed:
-            print("WebSocket connection closed.")
+            LOGGER.error("WebSocket connection closed.")
         except Exception as e:
-            print(f"An error occurred: {e.with_traceback()}")
+            LOGGER.exception(f"An error occurred: {e}")
 
     def handle_message(self, message: websockets.Data):
         """Handle and process chat messages."""
@@ -256,9 +254,9 @@ class TwitchAPI:
             self.name_to_id[name] = stream_id
             self.id_to_name[stream_id] = name
             self.connected_chats[stream_id] = deque(maxlen=100)
-            print(f"Joined chat for #{name}")
+            LOGGER.info(f"Joined chat for #{name}")
         else:
-            print(f"Already in chat with id: {stream_id}")
+            LOGGER.warn(f"Already in chat with id: {stream_id}")
 
     async def leave_room(self, stream_id: str):
         """Leave a specific chat room dynamically."""
@@ -267,42 +265,31 @@ class TwitchAPI:
             try:
                 await self.websocket.send(f"PART #{name}")
             except websockets.ConnectionClosed:
-                print("WebSocket connection closed.")
+                LOGGER.error("WebSocket connection closed.")
 
             del self.connected_chats[stream_id]
             del self.name_to_id[name]
             del self.id_to_name[stream_id]
 
-            print(f"Left chat for #{name}")
+            LOGGER.info(f"Left chat for #{name}")
+
         else:
-            print(f"Not currently in chat for id: {stream_id}")
-
-    async def close(self):
-        """Close the Twitch chat connection and cancel the background task."""
-        if self.chat_task:
-            self.chat_task.cancel()  # Cancel the background task
-            print("Chat task cancelled.")
-
-        if self.websocket and self.websocket.open:
-            await self.websocket.close()
-            print("WebSocket connection closed.")
-
-        self.chat_task = None
+            LOGGER.info(f"Not currently in chat for id: {stream_id}")
         self.websocket = None
-        print("TwitchAPI has been shut down.")
+        LOGGER.warn("TwitchAPI has been shut down.")
 
 
 # step by step
 """
 # If app access token
 1. run the auth()
-2. use updated header, when expires call auth again 
+2. use updated header, when expires call auth again
 
 # IF user access token
 1. generate link for a user using make_user_auth()
 if user authorizes example correct link http://localhost:3000/?code= 96le3w4pitvopv1f60000000000 &scope=user%3Aread%3Achat
 2. user authorizes app, somehow get from him  the code
-3. run the auth_user with that code. 
+3. run the auth_user with that code.
 4. if expires use REFRESH_TOKEN you can't use make_user_auth(), unless user returns new code.
 """
 twitch = TwitchAPI(CLIENT_ID, CLIENT_SECRET)
