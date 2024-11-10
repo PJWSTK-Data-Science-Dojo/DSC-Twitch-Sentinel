@@ -1,8 +1,7 @@
-
 from datetime import datetime
 
 
 class Message:
     def __init__(self, content: str):
-        content: str = content
-        timestamp: datetime | None = datetime.now()
+        self.content: str = content
+        self.timestamp: datetime | None = datetime.now()
