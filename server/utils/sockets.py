@@ -35,7 +35,6 @@ async def stream_context(sid, data):
     try:
         # Validate the incoming data using StreamContext model
         context = StreamContext.model_validate(data)
-        print(f"Received stream context: {context}")
 
         await sio_server.emit("response", f"Echo: {context}", to=sid)
         await socket_manager.update_client(sid, context)
