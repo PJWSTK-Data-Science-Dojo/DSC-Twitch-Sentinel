@@ -22,9 +22,10 @@ class AnalysisQueue:
             for stream_id in list(twitch.connected_chats.keys()):
                 try:
                     messages_test = list(twitch.connected_chats[stream_id])
+                    message_content = [messages.content for messages in messages_test]
                     results = await asyncio.to_thread(
                         self.sent_model.multiple_message_classification_harmonic_mean,
-                        messages_test,
+                        message_content,
                     )
 
                     await usock.socket_manager.send_message(results, stream_id)

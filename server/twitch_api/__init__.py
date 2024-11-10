@@ -1,7 +1,7 @@
 import asyncio
 from collections import deque
 from typing import List, Set
-
+from utils import Message
 from dotenv import load_dotenv
 import os
 import requests
@@ -241,10 +241,11 @@ class TwitchAPI:
         channel, _, message = channel_message.partition(":")
         channel = channel.strip()
         message = message.strip()
+        msg_class = Message(message)
         channel = channel.removeprefix("#")
         streamer_id = self.name_to_id[channel]
 
-        self.connected_chats[streamer_id].append(message)
+        self.connected_chats[streamer_id].append(msg_class)
 
     async def join_room(self, stream_id: str):
         """Join a specific chat room dynamically."""
