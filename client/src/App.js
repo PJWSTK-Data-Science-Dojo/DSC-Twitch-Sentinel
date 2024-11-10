@@ -7,7 +7,7 @@ function App() {
   const [chatEntertainment, setChatEntertainment] = useState(1.0);
   const [isConnected, setIsConnected] = useState(false);
   const socket = useRef();
-
+  const [streamerId, setStreamerId] = useState('');
   useEffect(() => {
 
     socket.current = io(`http://${process.env.REACT_APP_BACKEND_URL}`, {
@@ -37,10 +37,10 @@ function App() {
     });
     
 
-    window.Twitch.ext.onAuthorized((auth) => {
-      console.log('Auth:', auth);
-      socket.current.emit('stream_context', auth);
-    });
+    // window.Twitch.ext.onAuthorized((auth) => {
+    //   console.log('Auth:', auth);
+    //   socket.current.emit('stream_context', auth);
+    // });
 
     return () => {
       socket.current.disconnect();
@@ -48,7 +48,9 @@ function App() {
 
   }, []);
 
-
+  const connectToStream = () => {
+    socket.current.emit('stream_context', {channelId: streamerId, clientId: '1q2w3', userId: '1234', helixToken: '123'});
+  };
   const [color, setColor] = useState('lightblue');
 
   function calcColor(value) {
@@ -78,9 +80,20 @@ function App() {
     setColor(calcColor(chatEntertainment));
   }, [chatEntertainment]);
 
+
+
   return (
     <div className="App">
       <div className='main-body'>
+      <input
+          type="text"
+          placeholder="Enter Streamer ID"
+          value={streamerId}
+          onChange={(e) => setStreamerId(e.target.value)}
+        />
+        <button onClick={connectToStream} disabled={!streamerId}>
+          Connect
+        </button>
       </div>
       <div className='chart-bar' style={{
         backgroundColor: color,

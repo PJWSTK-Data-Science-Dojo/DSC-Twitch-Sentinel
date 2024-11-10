@@ -8,7 +8,10 @@
   display: grid;
   grid-template-columns: auto 1.5%;
 }
-
+.main-body input,
+.main-body button {
+  pointer-events: auto;
+}
 .chart-bar {
   width: 100%;
   margin-top: auto;

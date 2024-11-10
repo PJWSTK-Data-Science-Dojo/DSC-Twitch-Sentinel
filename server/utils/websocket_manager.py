@@ -51,7 +51,7 @@ class WebSocketManager:
         if stream_id not in self.stream_clients:
             raise Exception(f"Stream with id {stream_id} not found")
 
-        for client_sid in self.stream_clients[stream_id]:
+        for client_sid in list(self.stream_clients[stream_id]):
             await self.sm_app.emit("data", message, to=client_sid)
 
     async def delete_stream(self, stream_id: str):

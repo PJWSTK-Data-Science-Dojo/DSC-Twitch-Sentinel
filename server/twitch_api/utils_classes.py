@@ -6,4 +6,8 @@ class Message:
         self.content: str = content
         self.timestamp: datetime | None = datetime.now()
 
+    def __str__(self):
+        return self.content
 
+    def __repr__(self) -> str:
+        return f"Message(content={self.content}, timestamp={self.timestamp})"

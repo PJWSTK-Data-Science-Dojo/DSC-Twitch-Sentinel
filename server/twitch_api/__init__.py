@@ -245,18 +245,19 @@ class TwitchAPI:
 
         self.connected_chats[streamer_id].append(msg_class)
 
-    async def join_room(self, stream_id: str):
+    async def join_room(self, streamer_id: str):
         """Join a specific chat room dynamically."""
-        if stream_id not in self.connected_chats:
-            name = self.get_streamer_login(stream_id)
-            await self.websocket.send(f"JOIN #{name}")
+        if streamer_id not in self.connected_chats:
+            steamer_login = self.get_streamer_login(streamer_id)
 
-            self.name_to_id[name] = stream_id
-            self.id_to_name[stream_id] = name
-            self.connected_chats[stream_id] = deque(maxlen=100)
-            LOGGER.info(f"Joined chat for #{name}")
+            await self.websocket.send(f"JOIN #{steamer_login}")
+
+            self.name_to_id[steamer_login] = streamer_id
+            self.id_to_name[streamer_id] = steamer_login
+            self.connected_chats[streamer_id] = deque(maxlen=100)
+            LOGGER.info(f"Joined chat for #{steamer_login}")
         else:
-            LOGGER.warn(f"Already in chat with id: {stream_id}")
+            LOGGER.warn(f"Already in chat with id: {streamer_id}")
 
     async def leave_room(self, stream_id: str):
         """Leave a specific chat room dynamically."""

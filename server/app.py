@@ -62,10 +62,10 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/streams/{stream_name}/info", status_code=200)
-async def get_info_stream(stream_name: str):
+@app.get("/streams/{streamer_name}/info", status_code=200)
+async def get_info_stream(streamer_name: str):
     print("get info chat")
-    return twitch.get_streams_name(stream_name)
+    return twitch.get_streams_name(streamer_name)
 
 
 @app.get("/streams", status_code=200)
@@ -74,21 +74,21 @@ async def get_streams():
     return list(keys)
 
 
-@app.get("/streams/{stream_name}/listen", status_code=200)
-async def listen_stream(stream_name: str):
+@app.get("/streams/{streamer_id}/listen", status_code=200)
+async def listen_stream(streamer_id: str):
     print("Listening to stream")
 
-    await twitch.join_room(stream_name)
+    await twitch.join_room(streamer_id)
     return {"status": "ok"}
 
 
-@app.get("/streams/{stream_name}/chat", status_code=200)
-async def get_chat(stream_name: str):
+@app.get("/streams/{streamer_id}/chat", status_code=200)
+async def get_chat(streamer_id: str):
     print("Getting chat")
-    return twitch.connected_chats.get(stream_name, [])
+    return twitch.connected_chats.get(streamer_id, [])
 
 
-@app.get("/streams/{stream_name}/leave")
-async def leave_stream(stream_name: str):
-    await twitch.leave_room(stream_name)
+@app.get("/streams/{streamer_id}/leave")
+async def leave_stream(streamer_id: str):
+    await twitch.leave_room(streamer_id)
     return {"status": "ok"}
