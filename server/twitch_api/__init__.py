@@ -273,9 +273,9 @@ class TwitchAPI:
             del self.id_to_name[stream_id]
 
             LOGGER.info(f"Left chat for #{name}")
+            return
 
-        else:
-            LOGGER.info(f"Not currently in chat for id: {stream_id}")
+        LOGGER.info(f"Not currently in chat for id: {stream_id}")
         self.websocket = None
         LOGGER.warn("TwitchAPI has been shut down.")
 
